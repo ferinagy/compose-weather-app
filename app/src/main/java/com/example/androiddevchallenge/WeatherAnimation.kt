@@ -1,8 +1,13 @@
 package com.example.androiddevchallenge
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,6 +25,8 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.lerp
+import kotlin.math.PI
+import kotlin.math.sin
 
 @Composable fun WeatherAnimation(ratio: Float, data: DayData, modifier: Modifier = Modifier) {
     val hourlyData = data.hours[(ratio * 24).toInt().coerceAtMost(23)]
@@ -29,18 +36,27 @@ import androidx.compose.ui.graphics.lerp
 
     val alphas = calculateAlphas(weather = weather)
 
+    val infiniteTransition = rememberInfiniteTransition()
+    val infiniteAnim by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(10_000, easing = LinearEasing)
+        )
+    )
+
     Canvas(modifier = modifier) {
         clipRect {
             drawSky(ratio = ratio)
-            drawStars(ratio = ratio, alpha = alphas.sun)
-            drawSun(ratio = ratio, alpha = alphas.sun)
+            drawStars(ratio = ratio, alpha = alphas.sun, infiniteAnim = infiniteAnim)
+            drawSun(ratio = ratio, alpha = alphas.sun, infiniteAnim = infiniteAnim)
             drawMoon(ratio = ratio, alpha = alphas.sun)
 
-            drawRain(ratio, alphas.rain)
-            drawSnow(alphas.snow)
-            drawClouds(color = cloudColor, alpha = alphas.cloud)
-            drawMoreClouds(color = cloudColor, alpha = alphas.moreClouds)
-            drawFog(ratio, alphas.fog)
+            drawRain(ratio = ratio, alpha = alphas.rain, infiniteAnim = infiniteAnim)
+            drawSnow(alpha = alphas.snow, infiniteAnim = infiniteAnim)
+            drawClouds(color = cloudColor, alpha = alphas.cloud, infiniteAnim = infiniteAnim)
+            drawMoreClouds(color = cloudColor, alpha = alphas.moreClouds, infiniteAnim = infiniteAnim)
+            drawFog(ratio = ratio, alpha = alphas.fog, infiniteAnim = infiniteAnim)
         }
     }
 }
@@ -57,7 +73,15 @@ private fun getCloudColor(ratio: Float): Color {
     }
 }
 
-private data class Alphas(val sun: Float, val cloud: Float, val moreClouds: Float, val rain: Float, val snow: Float, val fog: Float)
+private data class Alphas(
+    val sun: Float,
+    val cloud: Float,
+    val moreClouds: Float,
+    val rain: Float,
+    val snow: Float,
+    val fog: Float
+)
+
 private val animationSpec = spring<Float>(stiffness = Spring.StiffnessLow)
 
 @Composable
@@ -83,9 +107,18 @@ private fun calculateAlphas(weather: WeatherType): Alphas {
         animationSpec = animationSpec
     )
 
-    val rainAlpha by animateFloatAsState(targetValue = if (weather == WeatherType.Rain) 1f else 0f, animationSpec = spring(stiffness = Spring.StiffnessLow))
-    val snowAlpha by animateFloatAsState(targetValue = if (weather == WeatherType.Snow) 1f else 0f, animationSpec = spring(stiffness = Spring.StiffnessLow))
-    val fogAlpha by animateFloatAsState(targetValue = if (weather == WeatherType.Fog) 1f else 0f, animationSpec = spring(stiffness = Spring.StiffnessLow))
+    val rainAlpha by animateFloatAsState(
+        targetValue = if (weather == WeatherType.Rain) 1f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow)
+    )
+    val snowAlpha by animateFloatAsState(
+        targetValue = if (weather == WeatherType.Snow) 1f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow)
+    )
+    val fogAlpha by animateFloatAsState(
+        targetValue = if (weather == WeatherType.Fog) 1f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow)
+    )
 
     return Alphas(
         sun = 1f,
@@ -114,11 +147,11 @@ private fun DrawScope.drawSky(ratio: Float) {
     val i = steps.indexOfFirst { hour < it.first }
     val v1 = steps[i - 1]
     val v2 = steps[i]
-    val color = androidx.compose.ui.graphics.lerp(v1.second, v2.second, (hour - v1.first) / (v2.first - v1.first))
+    val color = lerp(v1.second, v2.second, (hour - v1.first) / (v2.first - v1.first))
     drawRect(color = color, topLeft = Offset.Zero)
 }
 
-private fun DrawScope.drawSun(ratio: Float, alpha: Float) {
+private fun DrawScope.drawSun(ratio: Float, infiniteAnim: Float, alpha: Float) {
     val hour = ratio * 24
     if (hour < 6 || 21 <= hour) return
 
@@ -130,14 +163,17 @@ private fun DrawScope.drawSun(ratio: Float, alpha: Float) {
     val sunColor = Color(0xfffac905)
 
     withTransform({
-        rotate(degrees = -90 + 180 * effectiveRatio, pivot = center + Offset(0f, canvasHeight * 0.6f))
+        val degrees = -90 + 180 * effectiveRatio
+        rotate(degrees = degrees, pivot = center + Offset(0f, canvasHeight * 0.6f))
         translate(left = canvasWidth / 2, top = canvasHeight / 4)
+        rotate(degrees = -degrees, pivot = Offset.Zero)
     }) {
         drawCircle(color = sunColor, radius = 40f, alpha = alpha, center = Offset.Zero)
         val rays = 16
         val step = 360f / rays
+        val offset = 360f * infiniteAnim
         repeat(rays) {
-            rotate(degrees = step * it, pivot = Offset.Zero) {
+            rotate(degrees = step * it + offset, pivot = Offset.Zero) {
                 val end = if (it % 2 == 0) 80f else 70f
                 drawLine(
                     color = sunColor,
@@ -179,7 +215,7 @@ private fun DrawScope.drawMoon(ratio: Float, alpha: Float) {
     }
 }
 
-private fun DrawScope.drawStars(ratio: Float, alpha: Float) {
+private fun DrawScope.drawStars(ratio: Float, alpha: Float, infiniteAnim: Float) {
     val canvasWidth = size.width
     val canvasHeight = size.height
 
@@ -187,31 +223,13 @@ private fun DrawScope.drawStars(ratio: Float, alpha: Float) {
         rotate(degrees = 360 * ratio, pivot = center + Offset(-132f, -63f))
         translate(left = canvasWidth / 2, top = canvasHeight / 4)
     }) {
-        drawStar(ratio, alpha, Offset(100f, 100f))
-        drawStar(ratio, alpha, Offset(-120f, 70f))
-        drawStar(ratio, alpha, Offset(-132f, -63f))
-        drawStar(ratio, alpha, Offset(10f, -45f))
-        drawStar(ratio, alpha, Offset(341f, 295f))
-        drawStar(ratio, alpha, Offset(352f, 320f))
-        drawStar(ratio, alpha, Offset(284f, 10f))
-        drawStar(ratio, alpha, Offset(-234f, 150f))
-        drawStar(ratio, alpha, Offset(-220f, -23f))
-        drawStar(ratio, alpha, Offset(-371f, 78f))
-        drawStar(ratio, alpha, Offset(-411f, 253f))
-        drawStar(ratio, alpha, Offset(-31f, 278f))
-        drawStar(ratio, alpha, Offset(-158f, 392f))
-        drawStar(ratio, alpha, Offset(158f, -249f))
-        drawStar(ratio, alpha, Offset(356f, -341f))
-        drawStar(ratio, alpha, Offset(22f, -459f))
-        drawStar(ratio, alpha, Offset(-56f, -200f))
-        drawStar(ratio, alpha, Offset(-58f, -321f))
-        drawStar(ratio, alpha, Offset(166f, 412f))
-        drawStar(ratio, alpha, Offset(-294f, -423f))
-        drawStar(ratio, alpha, Offset(-166f, -333f))
+        starOffsets.forEach {
+            drawStar(ratio, alpha, it, infiniteAnim)
+        }
     }
 }
 
-private fun DrawScope.drawStar(ratio: Float, weatherAlpha: Float, offset: Offset) {
+private fun DrawScope.drawStar(ratio: Float, weatherAlpha: Float, offset: Offset, infiniteAnim: Float) {
     val hour = ratio * 24
     if (7 <= hour && hour < 20) return
 
@@ -223,8 +241,14 @@ private fun DrawScope.drawStar(ratio: Float, weatherAlpha: Float, offset: Offset
 
     val starColor = Color(0xffe0e0de)
 
+    val randomized = ((offset.x + offset.y) % 20) / 20f + 1
+    val final = (infiniteAnim.speedUpAnimValue(4) + randomized) % 1f // <0,1> with some pseudo randomness based on offset
+    val eased = (sin(PI / 2 * (4 * final - 1)) / 2).toFloat() // <-0.5,0.5> with continous cycle
+    val scale = 1 + eased / 2
+
     withTransform({
         translate(left = offset.x, top = offset.y)
+        scale(scale, scale, Offset.Zero)
     }) {
         val path = Path()
         path.moveTo(0f, -10f)
@@ -241,30 +265,20 @@ private fun DrawScope.drawStar(ratio: Float, weatherAlpha: Float, offset: Offset
     }
 }
 
-private fun DrawScope.drawClouds(color: Color, alpha: Float) {
+private fun DrawScope.drawClouds(color: Color, alpha: Float, infiniteAnim: Float) {
 
     translate(left = size.width / 2, top = size.height / 4) {
-        drawCloud(color, alpha)
-        drawCloud(color, alpha, offset = Offset(-250f, 29f))
-        drawCloud(color, alpha, offset = Offset(289f, 41f))
+        cloudOffsets.forEach { drawCloud(color, alpha, infiniteAnim, it) }
     }
 }
 
-private fun DrawScope.drawMoreClouds(color: Color, alpha: Float) {
+private fun DrawScope.drawMoreClouds(color: Color, alpha: Float, infiniteAnim: Float) {
     translate(left = size.width / 2, top = size.height / 4) {
-        drawCloud(color, alpha, offset = Offset(-450f, -15f))
-        drawCloud(color, alpha, offset = Offset(351f, 123f))
-        drawCloud(color, alpha, offset = Offset(72f, 99f))
-        drawCloud(color, alpha, offset = Offset(511f, -69f))
-        drawCloud(color, alpha, offset = Offset(534f, 18f))
-        drawCloud(color, alpha, offset = Offset(185f, -61f))
-        drawCloud(color, alpha, offset = Offset(-162f, -54f))
-        drawCloud(color, alpha, offset = Offset(-333f, 100f))
-        drawCloud(color, alpha, offset = Offset(-73f, 86f))
+        moreCloudOffsets.forEach { drawCloud(color, alpha, infiniteAnim, it) }
     }
 }
 
-private fun DrawScope.drawFog(ratio: Float, alpha: Float) {
+private fun DrawScope.drawFog(ratio: Float, alpha: Float, infiniteAnim: Float) {
     val hour = ratio * 24
     val dayColor = Color(0xffe6e8e8)
     val nightColor = Color(0xff909191)
@@ -275,34 +289,28 @@ private fun DrawScope.drawFog(ratio: Float, alpha: Float) {
         else -> nightColor
     }
 
-    fun drawFogRect(offset: Offset, width: Float) = drawRoundRect(
-        color = fogColor,
-        topLeft = offset,
+    translate(left = size.width / 2, top = size.height / 4) {
+        fogRects.forEach { (offset, width) -> drawFogRect(offset, width, fogColor, alpha, infiniteAnim) }
+    }
+}
+
+private fun DrawScope.drawFogRect(offset: Offset, width: Float, color: Color, alpha: Float, infiniteAnim: Float) {
+    val randomized = (offset.y + 100) / 100 % 2 / 2f
+    val final = (infiniteAnim + randomized) % 1f // <0,1> with some pseudo randomness based on offset
+    val eased = (sin(PI / 2 * (4 * final - 1)) / 2).toFloat() // <-0.5,0.5> with continous cycle
+
+    val animOffset = eased * 100
+
+    drawRoundRect(
+        color = color,
+        topLeft = offset + Offset(animOffset, 0f),
         size = Size(width, 50f),
         cornerRadius = CornerRadius(25f, 25f),
         alpha = alpha
     )
-
-    translate(left = size.width / 2, top = size.height / 4) {
-        drawFogRect(offset = Offset(-100f, -30f), width = 250f)
-        drawFogRect(offset = Offset(190f, -30f), width = 220f)
-        drawFogRect(offset = Offset(-360f, -30f), width = 220f)
-        drawFogRect(offset = Offset(-10f, 70f), width = 550f)
-        drawFogRect(offset = Offset(-410f, 70f), width = 250f)
-        drawFogRect(offset = Offset(100f, 170f), width = 270f)
-        drawFogRect(offset = Offset(-100f, 170f), width = 170f)
-        drawFogRect(offset = Offset(-450f, 170f), width = 300f)
-        drawFogRect(offset = Offset(130f, 270f), width = 310f)
-        drawFogRect(offset = Offset(-40f, 270f), width = 130f)
-        drawFogRect(offset = Offset(-240f, 270f), width = 180f)
-        drawFogRect(offset = Offset(-390f, 270f), width = 120f)
-        drawFogRect(offset = Offset(80f, 370f), width = 110f)
-        drawFogRect(offset = Offset(250f, 370f), width = 170f)
-        drawFogRect(offset = Offset(-430f, 370f), width = 410f)
-    }
 }
 
-private fun DrawScope.drawRain(ratio: Float, alpha: Float) {
+private fun DrawScope.drawRain(ratio: Float, alpha: Float, infiniteAnim: Float) {
     val hour = ratio * 24
     val dayRainColor = Color(0xff2cdfe6)
     val nightRainColor = Color(0xff0f83db)
@@ -313,19 +321,34 @@ private fun DrawScope.drawRain(ratio: Float, alpha: Float) {
         else -> nightRainColor
     }
 
+    val start = 0f
+    val end = size.height * 3 / 4 + 50f
+    val animHeight = end - start
+    val animOffset = start + animHeight * infiniteAnim.speedUpAnimValue(3)
+
+    fun Offset.animated() = copy(y = (y + animOffset) % animHeight)
+
     translate(left = size.width / 2, top = size.height / 4) {
-        drawRaindrop(rainColor, alpha, offset = Offset(0f, 150f))
-        drawRaindrop(rainColor, alpha, offset = Offset(20f, 350f))
-        drawRaindrop(rainColor, alpha, offset = Offset(130f, 210f))
-        drawRaindrop(rainColor, alpha, offset = Offset(170f, 360f))
-        drawRaindrop(rainColor, alpha, offset = Offset(-140f, 180f))
-        drawRaindrop(rainColor, alpha, offset = Offset(-130f, 430f))
-        drawRaindrop(rainColor, alpha, offset = Offset(-70f, 230f))
-        drawRaindrop(rainColor, alpha, offset = Offset(-250f, 229f))
-        drawRaindrop(rainColor, alpha, offset = Offset(-300f, 400f))
-        drawRaindrop(rainColor, alpha, offset = Offset(-340f, 200f))
-        drawRaindrop(rainColor, alpha, offset = Offset(289f, 341f))
-        drawRaindrop(rainColor, alpha, offset = Offset(342f, 161f))
+        rainOffsets.forEach {
+            drawRaindrop(rainColor, alpha, offset = it.animated())
+        }
+    }
+}
+
+private fun Float.speedUpAnimValue(factor: Int) = (this % (1f / factor)) * factor
+
+private fun DrawScope.drawSnow(alpha: Float, infiniteAnim: Float) {
+    val start = 0f
+    val end = size.height * 3 / 4 + 50f
+    val animHeight = end - start
+    val animOffset = start + animHeight * infiniteAnim
+
+    fun Offset.animated() = copy(y = (y + animOffset) % animHeight)
+
+    translate(left = size.width / 2, top = size.height / 4) {
+        rainOffsets.forEach {
+            drawSnowFlake(alpha, offset = it.animated())
+        }
     }
 }
 
@@ -345,23 +368,6 @@ private fun DrawScope.drawRaindrop(color: Color, alpha: Float, offset: Offset = 
     }
 }
 
-private fun DrawScope.drawSnow(alpha: Float) {
-    translate(left = size.width / 2, top = size.height / 4) {
-        drawSnowFlake(alpha, offset = Offset(0f, 150f))
-        drawSnowFlake(alpha, offset = Offset(20f, 350f))
-        drawSnowFlake(alpha, offset = Offset(130f, 210f))
-        drawSnowFlake(alpha, offset = Offset(170f, 360f))
-        drawSnowFlake(alpha, offset = Offset(-140f, 180f))
-        drawSnowFlake(alpha, offset = Offset(-130f, 430f))
-        drawSnowFlake(alpha, offset = Offset(-70f, 230f))
-        drawSnowFlake(alpha, offset = Offset(-250f, 229f))
-        drawSnowFlake(alpha, offset = Offset(-300f, 400f))
-        drawSnowFlake(alpha, offset = Offset(-340f, 200f))
-        drawSnowFlake(alpha, offset = Offset(289f, 341f))
-        drawSnowFlake(alpha, offset = Offset(342f, 161f))
-    }
-}
-
 private fun DrawScope.drawSnowFlake(alpha: Float, offset: Offset = Offset.Zero) {
     translate(offset.x, offset.y) {
         repeat(3) {
@@ -378,8 +384,14 @@ private fun DrawScope.drawSnowFlake(alpha: Float, offset: Offset = Offset.Zero) 
     }
 }
 
-private fun DrawScope.drawCloud(cloudColor: Color, alpha: Float, offset: Offset = Offset.Zero) {
-    translate(offset.x, offset.y) {
+private fun DrawScope.drawCloud(cloudColor: Color, alpha: Float, infiniteAnim: Float, offset: Offset = Offset.Zero) {
+    val randomized = ((offset.x + offset.y) % 20) / 20f + 1
+    val final = (infiniteAnim + randomized) % 1f // <0,1> with some pseudo randomness based on offset
+    val eased = (sin(PI / 2 * (4 * final - 1)) / 2).toFloat() // <-0.5,0.5> with continous cycle
+
+    val animOffset = eased * 100
+
+    translate(offset.x + animOffset, offset.y) {
         val path = Path()
 
         path.addOval(Rect(-118.215f, -72.545f, -50.844997f, -5.174999f))
@@ -395,3 +407,78 @@ private fun DrawScope.drawCloud(cloudColor: Color, alpha: Float, offset: Offset 
         drawPath(path = path, color = cloudColor, alpha = alpha)
     }
 }
+
+private val rainOffsets = listOf(
+    Offset(0f, 150f),
+    Offset(20f, 350f),
+    Offset(130f, 210f),
+    Offset(170f, 360f),
+    Offset(-140f, 180f),
+    Offset(-130f, 430f),
+    Offset(-70f, 230f),
+    Offset(-250f, 229f),
+    Offset(-300f, 400f),
+    Offset(-340f, 200f),
+    Offset(289f, 341f),
+    Offset(342f, 161f),
+)
+
+private val starOffsets = listOf(
+    Offset(100f, 100f),
+    Offset(-120f, 70f),
+    Offset(-132f, -63f),
+    Offset(10f, -45f),
+    Offset(341f, 295f),
+    Offset(352f, 320f),
+    Offset(284f, 10f),
+    Offset(-234f, 150f),
+    Offset(-220f, -23f),
+    Offset(-371f, 78f),
+    Offset(-411f, 253f),
+    Offset(-31f, 278f),
+    Offset(-158f, 392f),
+    Offset(158f, -249f),
+    Offset(356f, -341f),
+    Offset(22f, -459f),
+    Offset(-56f, -200f),
+    Offset(-58f, -321f),
+    Offset(166f, 412f),
+    Offset(-294f, -423f),
+    Offset(-166f, -333f),
+)
+
+private val cloudOffsets = listOf(
+    Offset(0f, 0f),
+    Offset(-250f, 29f),
+    Offset(289f, 41f),
+)
+
+private val moreCloudOffsets = listOf(
+    Offset(-450f, -15f),
+    Offset(351f, 123f),
+    Offset(72f, 99f),
+    Offset(511f, -69f),
+    Offset(534f, 18f),
+    Offset(185f, -61f),
+    Offset(-162f, -54f),
+    Offset(-333f, 100f),
+    Offset(-73f, 86f),
+)
+
+private val fogRects = listOf(
+    Offset(-100f, -30f) to 250f,
+    Offset(190f, -30f) to 220f,
+    Offset(-360f, -30f) to 220f,
+    Offset(-10f, 70f) to 550f,
+    Offset(-410f, 70f) to 250f,
+    Offset(100f, 170f) to 270f,
+    Offset(-100f, 170f) to 170f,
+    Offset(-450f, 170f) to 300f,
+    Offset(130f, 270f) to 310f,
+    Offset(-40f, 270f) to 130f,
+    Offset(-240f, 270f) to 180f,
+    Offset(-390f, 270f) to 120f,
+    Offset(80f, 370f) to 110f,
+    Offset(250f, 370f) to 170f,
+    Offset(-430f, 370f) to 410f,
+)
