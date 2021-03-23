@@ -34,6 +34,7 @@ All 3 of these share a single source of truth, so changing any one of them will 
 
 
 Here is a low quality (so it can be embedded here) gif of app in action. For better quality, look at [video](/results/video.mp4).
+
 ![video](https://user-images.githubusercontent.com/2743419/112151489-90e8a400-8be1-11eb-808c-9d97aef64834.gif)
 
 
