@@ -25,8 +25,8 @@ val testData = DayData(
         HourlyData(wind = WindData(WindDirection.W, 15), weather = WeatherType.Snow, 3),
         HourlyData(wind = WindData(WindDirection.SW, 15), weather = WeatherType.Rain, 3),
         HourlyData(wind = WindData(WindDirection.NW, 15), weather = WeatherType.Rain, 5),
-        HourlyData(wind = WindData(WindDirection.NW, 14), weather = WeatherType.Cloudy, 5),
-        HourlyData(wind = WindData(WindDirection.W, 11), weather = WeatherType.Cloudy, 6),
+        HourlyData(wind = WindData(WindDirection.NW, 14), weather = WeatherType.Overcast, 5),
+        HourlyData(wind = WindData(WindDirection.W, 11), weather = WeatherType.Overcast, 6),
         HourlyData(wind = WindData(WindDirection.W, 10), weather = WeatherType.Clear, 6), // 16
         HourlyData(wind = WindData(WindDirection.W, 7), weather = WeatherType.Clear, 6),
         HourlyData(wind = WindData(WindDirection.W, 7), weather = WeatherType.Clear, 6),
