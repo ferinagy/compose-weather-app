@@ -317,12 +317,14 @@ private fun AddCityItem(modifier: Modifier = Modifier) {
     subtitle: String = "",
     isSelected: Boolean = false
 ) {
+    val borderColor = if (isSelected) {
+        MaterialTheme.colors.primary
+    } else {
+        MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+    }
     Card(
         modifier = modifier,
-        border = BorderStroke(
-            2.dp,
-            if (isSelected) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface
-        )
+        border = BorderStroke(2.dp, borderColor)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(8.dp)) {
             CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
