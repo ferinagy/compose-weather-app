@@ -1,5 +1,5 @@
 
-# Put title of your app here
+# Composed Weather
 
 <!--- Replace <OWNER> with your Github Username and <REPOSITORY> with the name of your repository. -->
 <!--- You can find both of these in the url bar when you open your repository in github. -->
@@ -33,6 +33,7 @@ All 3 of these share a single source of truth, so changing any one of them will 
 <img src="/results/screenshot_1.png" width="260">&emsp;<img src="/results/screenshot_2.png" width="260">
 
 
+Here is a low quality (so it can be embedded here) gif of app in action. For better quality, look at [video](/results/video.mp4).
 ![video](https://user-images.githubusercontent.com/2743419/112151489-90e8a400-8be1-11eb-808c-9d97aef64834.gif)
 
 
