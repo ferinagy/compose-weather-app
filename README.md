@@ -1,3 +1,4 @@
+
 # Put title of your app here
 
 <!--- Replace <OWNER> with your Github Username and <REPOSITORY> with the name of your repository. -->
@@ -27,11 +28,13 @@ The time of day displayed can be controlled in 3 ways:
    
 All 3 of these share a single source of truth, so changing any one of them will also change the other 2.
 
-
-
 ## :camera_flash: Screenshots
 <!-- You can add more screenshots here if you like -->
 <img src="/results/screenshot_1.png" width="260">&emsp;<img src="/results/screenshot_2.png" width="260">
+
+
+![video](https://user-images.githubusercontent.com/2743419/112151489-90e8a400-8be1-11eb-808c-9d97aef64834.gif)
+
 
 ## License
 ```
