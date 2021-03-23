@@ -85,7 +85,6 @@ class MainActivity : AppCompatActivity() {
 }
 
 // Start building your app here!
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MyApp() {
     var cities by remember {
@@ -192,7 +191,6 @@ fun MyApp() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable fun Timeline(data: DayData, scrollState: ScrollState, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
 
@@ -219,7 +217,8 @@ fun MyApp() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class) fun LazyListScope.addCities(
+@OptIn(ExperimentalFoundationApi::class)
+fun LazyListScope.addCities(
     columns: Int,
     cities: List<CityData>,
     selected: CityData,
@@ -300,7 +299,6 @@ private fun AddCityItem(modifier: Modifier = Modifier) {
     CityItem(title = "Add", icon = Icons.Default.AddCircleOutline, modifier = modifier)
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable fun CityItem(
     title: String,
     modifier: Modifier = Modifier,
