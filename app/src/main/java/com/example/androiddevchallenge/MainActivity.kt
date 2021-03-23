@@ -25,6 +25,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -102,10 +105,19 @@ fun MyApp() {
             LazyColumn(Modifier.fillMaxSize()) {
 
                 item {
+                    val scope = rememberCoroutineScope()
                     WeatherAnimation(
                         ratio = scrollState.getRatio(),
                         data = selected.dayData,
-                        modifier = Modifier.fillMaxWidth().height(300.dp)
+                        modifier = Modifier.fillMaxWidth()
+                            .height(300.dp)
+                            .scrollable(
+                                orientation = Orientation.Horizontal,
+                                state = rememberScrollableState { delta ->
+                                    scope.launch { scrollState.scrollTo((scrollState.value + delta).roundToInt()) }
+                                    delta
+                                }
+                            )
                     )
                 }
 
